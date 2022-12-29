@@ -1,11 +1,12 @@
 import bcrypt from "bcrypt";
-import User from "../model/user.js";
-import accessToken from "../helpers/auth.js";
+import User from "../models/user.js";
+import accessToken from "../helpers/jwtConfig.js";
 
+// user signup
 export const register = async (req, res) => {
   try {
     const { firstName, lastName, email, mobileNumber, password } = req.body;
-    console.log(firstName, lastName, email, mobileNumber);
+
     const { user } = await User.find({ email: email });
     if (!user) {
       let randomNumber = Math.floor(Math.random() * 100);
@@ -30,14 +31,17 @@ export const register = async (req, res) => {
   }
 };
 
+// user login
 export const login = async (req, res) => {
   try {
     const { userName, password } = req.body;
-    const user = await User.findOne({ userName });
+    console.log(userName);
+    const user = await User.findOne({ userName }).select("password");
+    console.log(user);
+    console.log(user.password);
     if (user) {
-      console.log(user);
       const valid = await bcrypt.compare(password, user.password);
-      console.log(valid);
+
       if (valid) {
         const token = accessToken(user);
         res.status(200).json({ user, token, message: "login success" });
@@ -48,10 +52,11 @@ export const login = async (req, res) => {
       res.status(403).json({ message: "user not found" });
     }
   } catch (error) {
-    res.status(error.status).json({ message: "error.message" });
+    res.status(403).json({ message: error.message });
   }
 };
 
+// reset password
 export const resetPassword = async (req, res) => {
   try {
     const { userName, newPassword } = req.body;
@@ -60,7 +65,6 @@ export const resetPassword = async (req, res) => {
     if (valid) {
       res.status(403).json({ message: "you cannot use older password" });
     } else {
-      console.log("not same");
       const password = await bcrypt.hash(newPassword, 10);
       await User.findOneAndUpdate(
         { userName },
@@ -72,10 +76,11 @@ export const resetPassword = async (req, res) => {
   }
 };
 
+// users list
 export const userList = async (req, res) => {
   try {
     const allUsers = await User.find();
-    console.log(allUsers);
+    res.status(200).json({ allUsers });
   } catch (error) {
     res.json({ message: error.message });
   }
